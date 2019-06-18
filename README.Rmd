@@ -1,0 +1,163 @@
+---
+output: github_document
+---
+
+# Predictions in generalized linear models
+
+ideas taken from (this blog post)[https://www.fromthebottomoftheheap.net/2018/12/10/confidence-intervals-for-glms/]
+
+## packages
+
+```{r}
+library(tidyverse) # for ggplot
+```
+
+## Some made-up data
+
+```{r}
+d=tribble(
+  ~dose, ~status,
+  1, "lived",
+  2, "died",
+  3, "lived",
+  4, "lived",
+  5, "died",
+  6, "lived",
+  7, "died",
+  8, "died",
+  9, "died"
+)
+d
+```
+
+Logistic regression requires a "factor" for response (not a text variable). There are several ways to create one, eg:
+
+```{r}
+factor(d$status)
+```
+
+This puts the levels into alphabetical order.
+
+```{r}
+fct_inorder(d$status)
+```
+
+This puts the levels into the order they appear in the data.
+
+I use the first way for the logistic regression below.
+
+## fit logistic regression
+
+```{r}
+d.1=glm(factor(status)~dose, family="binomial", data=d)
+summary(d.1)
+```
+
+probability of *living* goes down as dose goes up
+
+## predictions (for the observed doses)
+
+```{r}
+p=predict(d.1)
+cbind(d, p)
+```
+
+these are predicted log-odds of living (on the linear predictor scale).
+
+Can make it into predicted probabilities:
+
+```{r}
+p=predict(d.1, type="response")
+p
+cbind(d,p)
+```
+
+Can also get standard errors:
+
+```{r}
+p=predict(d.1, type="response", se.fit = T)
+p
+cbind(d,p) -> preds
+preds
+```
+
+Obvious thing, plus/minus twice the SE, makes no sense here:
+
+```{r}
+preds %>% mutate(lo=fit-2*se.fit, hi=fit+2*se.fit) -> preds2
+preds2
+```
+
+The CIs for the predicted probabilities go below 0 and above 1, which makes no sense.
+
+plot predicted probs
+
+```{r}
+g <- ggplot(preds, aes(x = dose, y = fit)) +
+    geom_line()
+g
+```
+
+add wrong ci limits as ribbon
+
+```{r}
+g + geom_ribbon(data = preds2, aes(ymin = lo, ymax = hi),
+                  alpha = 0.1) +
+  geom_hline(yintercept=1, linetype="dashed")+
+  geom_hline(yintercept=0, linetype="dashed")
+
+```
+
+This shows how the confidence limits make no sense (outside the dashed lines).
+
+## Doing it better
+
+Work with *linear predictor*, and then invert it
+
+```{r}
+p=predict(d.1, se.fit=T)
+cbind(d, p) %>% 
+  mutate(lo=fit-2*se.fit, hi=fit+2*se.fit) -> preds3
+preds3
+```
+
+getting the inverse link function
+
+```{r}
+fam=family(d.1)
+str(fam)
+```
+
+there is a function `linkinv` that we can grab:
+
+```{r}
+inv_link=fam$linkinv
+inv_link(0)
+inv_link(1)
+inv_link(-1)
+```
+
+These values make sense.
+
+Work out inverse logit of predictions and hi and lo
+
+```{r}
+preds3
+```
+
+```{r}
+preds3 %>% mutate(fit=inv_link(fit),
+                  lo=inv_link(lo),
+                  hi=inv_link(hi)) -> preds4
+preds4
+```
+
+```{r}
+g + geom_ribbon(data = preds4, aes(ymin = lo, ymax = hi),
+                  alpha = 0.1) +
+  geom_hline(yintercept=1, linetype="dashed")+
+  geom_hline(yintercept=0, linetype="dashed")
+
+```
+
+Now the confidence intervals stay between 0 and 1. Note that the actual predictions are no longer in the middle of their intervals. 
