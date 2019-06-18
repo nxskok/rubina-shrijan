@@ -10,7 +10,7 @@ post)\[<https://www.fromthebottomoftheheap.net/2018/12/10/confidence-intervals-f
 library(tidyverse) # for ggplot
 ```
 
-    ## ── Attaching packages ───────────────────────────────────────────────────────────────────────────────────────────── tidyverse 1.2.1 ──
+    ## ── Attaching packages ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── tidyverse 1.2.1 ──
 
     ## ✔ ggplot2 3.1.1          ✔ purrr   0.3.2     
     ## ✔ tibble  2.1.1          ✔ dplyr   0.8.0.1   
@@ -33,7 +33,7 @@ library(tidyverse) # for ggplot
 
     ## Warning: package 'forcats' was built under R version 3.5.1
 
-    ## ── Conflicts ──────────────────────────────────────────────────────────────────────────────────────────────── tidyverse_conflicts() ──
+    ## ── Conflicts ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── tidyverse_conflicts() ──
     ## ✖ dplyr::filter() masks stats::filter()
     ## ✖ dplyr::lag()    masks stats::lag()
 
@@ -231,7 +231,8 @@ plot predicted probs
 
 ``` r
 g <- ggplot(preds, aes(x = dose, y = fit)) +
-    geom_line()
+    geom_line()+
+  geom_rug(aes(colour=status), sides="b")
 g
 ```
 

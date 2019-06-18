@@ -94,7 +94,8 @@ plot predicted probs
 
 ```{r}
 g <- ggplot(preds, aes(x = dose, y = fit)) +
-    geom_line()
+    geom_line()+
+  geom_rug(aes(colour=status), sides="b")
 g
 ```
 
